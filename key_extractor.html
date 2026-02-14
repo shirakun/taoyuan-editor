@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桃源乡 · 密钥提取工具</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text2: #8b949e;
+            --gold: #d29922;
+            --blue: #58a6ff;
+            --green: #238636;
+            --red: #da3633;
+        }
+
+        .nav-link {
+            color: var(--blue);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-link:hover {
+            background: #1c2128;
+            border-color: var(--blue);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: var(--gold);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            color: var(--text2);
+            font-size: 14px;
+        }
+
+        /* Dropzone */
+        .dropzone {
+            background: var(--surface);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .dropzone:hover,
+        .dropzone.drag-over {
+            border-color: var(--blue);
+            background: #1c2128;
+        }
+
+        .dropzone h2 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .dropzone p {
+            color: var(--text2);
+            font-size: 14px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Results */
+        .results-container {
+            margin-top: 32px;
+            display: none;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            padding: 12px 20px;
+            background: #21262d;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--blue);
+        }
+
+        .hits-list {
+            padding: 10px;
+        }
+
+        .hit-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .hit-item:hover {
+            border-color: var(--gold);
+        }
+
+        .hit-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--gold);
+            font-size: 15px;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: var(--border);
+            border: none;
+            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #484f58;
+        }
+
+        /* Log Area */
+        .terminal {
+            background: #000;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #888;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-msg {
+            margin-bottom: 4px;
+        }
+
+        .log-success {
+            color: var(--green);
+        }
+
+        .log-warn {
+            color: var(--gold);
+        }
+
+        .log-error {
+            color: var(--red);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold);
+            color: #000;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🍑 密钥提取工具</h1>
+            <p class="subtitle">通过分析游戏 JS 文件提取存档加解密密钥</p>
+            <div style="margin-top: 16px;">
+                <a href="index.html" class="nav-link">
+                    <span>前往存档编辑器</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+            </div>
+        </header>
+
+        <div id="dropzone" class="dropzone">
+            <h2>📂 拖入 useSaveStore-xxxx.js 文件</h2>
+            <p>支持多文件拖入 · 自动识别 桃源乡 密钥模式</p>
+            <input type="file" id="fileInput" multiple accept=".js">
+        </div>
+
+        <div id="results" class="results-container">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">🔍 提取出的潜在密钥</span>
+                    <span id="hitCount" style="font-size:12px;color:var(--text2)"></span>
+                </div>
+                <div id="hitsList" class="hits-list"></div>
+            </div>
+        </div>
+
+        <div id="terminal" class="terminal" style="display:none"></div>
+    </div>
+
+    <div id="toast" class="toast">已复制</div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const results = document.getElementById('results');
+        const hitsList = document.getElementById('hitsList');
+        const terminal = document.getElementById('terminal');
+        const hitCount = document.getElementById('hitCount');
+
+        // UI Events
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+
+            terminal.style.display = 'block';
+            terminal.innerHTML = '';
+            results.style.display = 'none';
+            hitsList.innerHTML = '';
+            const allHits = [];
+
+            log(`开始处理 ${files.length} 个文件...`, 'info');
+
+            for (const file of files) {
+                log(`正在扫描: ${file.name} (${formatSize(file.size)})`, 'info');
+                try {
+                    const content = await file.text();
+                    const hits = extractKeys(content, file.name);
+                    if (hits.length > 0) {
+                        allHits.push(...hits);
+                        log(`在 ${file.name} 中找到 ${hits.length} 个匹配项`, 'success');
+                    } else {
+                        log(`${file.name} 未找到匹配项`, 'warn');
+                    }
+                } catch (e) {
+                    log(`读取文件 ${file.name} 失败: ${e.message}`, 'error');
+                }
+            }
+
+            if (allHits.length > 0) {
+                displayResults(allHits);
+            } else {
+                log('所有文件扫描完毕，未找到任何密钥', 'error');
+            }
+        }
+
+        function extractKeys(text, fileName) {
+            const resultsMap = new Map(); // val -> { val, score, reason }
+
+            const addHit = (val, score, reason) => {
+                if (!val || val.length < 4 || val.length > 128) return;
+                const existing = resultsMap.get(val);
+                if (!existing || existing.score < score) {
+                    resultsMap.set(val, { val, score, reason: `${reason} (${fileName})` });
+                }
+            };
+
+            // 1. Trace AES usage (tracing minified variables)
+            const aesPattern = /\.AES\.(?:decrypt|encrypt)\s*\(\s*[^,]+\s*,\s*([a-zA-Z0-9_$]+)\s*\)/g;
+            const aesMatches = [...text.matchAll(aesPattern)];
+            aesMatches.forEach(m => {
+                const keyVar = m[1];
+                const assignPattern = new RegExp(`(?:const|let|var|,)\\s*${keyVar.replace('$', '\\$')}\\s*=\\s*(['"])([^'"]+)\\1`, 'g');
+                const assignMatches = [...text.matchAll(assignPattern)];
+                assignMatches.forEach(am => {
+                    const val = am[2];
+                    let score = 50;
+                    if (val.includes('secret')) score += 30;
+                    if (val.startsWith('taoyuanxiang_')) score += 20;
+                    addHit(val, score, `AES 引用变量 [${keyVar}]`);
+                });
+            });
+
+            // 2. Direct string patterns 
+            const stringPatterns = [
+                { re: /taoyuanxiang_[a-zA-Z0-9_-]+_secret/g, score: 100, reason: '特征字符串匹配' },
+                { re: /["'](taoyuanxiang_[a-zA-Z0-9_-]+)["']/g, score: 80, reason: '桃源乡命名空间匹配' }
+            ];
+
+            stringPatterns.forEach(p => {
+                const matches = [...text.matchAll(p.re)];
+                matches.forEach(m => {
+                    addHit(m[1] || m[0], p.score, p.reason);
+                });
+            });
+
+            // 3. Known storage prefix
+            const prefixPattern = /["'](taoyuanxiang_save_)["']/g;
+            const prefixMatches = [...text.matchAll(prefixPattern)];
+            prefixMatches.forEach(m => {
+                addHit(m[1], 40, '存档前缀匹配');
+            });
+
+            return [...resultsMap.values()];
+        }
+
+        function displayResults(hits) {
+            // Sort by score descending
+            hits.sort((a, b) => b.score - a.score);
+
+            results.style.display = 'block';
+            hitCount.textContent = `共找到 ${hits.length} 项`;
+            hitsList.innerHTML = hits.map(h => `
+                <div class="hit-item" style="${h.score >= 80 ? 'border-left: 4px solid var(--green)' : ''}">
+                  <div style="flex: 1">
+                    <div class="hit-val">${escapeHtml(h.val)}</div>
+                    <div style="font-size: 11px; color: var(--text2); margin-top: 4px;">🎯 可信度: ${h.score} | 来源: ${escapeHtml(h.reason)}</div>
+                  </div>
+                  <button class="copy-btn" onclick="copyText('${h.val}')">复制</button>
+                </div>
+            `).join('');
+        }
+
+        function log(msg, type) {
+            const div = document.createElement('div');
+            div.className = `log-msg log-${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const t = document.getElementById('toast');
+                t.classList.add('show');
+                setTimeout(() => t.classList.remove('show'), 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>
