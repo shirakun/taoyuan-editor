@@ -3,6 +3,8 @@ setube/taoyuan save editor
 
 一个基于浏览器的加密存档编辑器工具，无需安装即可直接在本地修改游戏存档数据，支持属性、工具、武器、背包、农场等多维度编辑。
 
+打开 https://shirakun.github.io/taoyuan-editor 上传存档即可进行编辑
+
 ## 功能特性
 
 - 本地运行且加密
