@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桃源乡 — 存档编辑器</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1c2333;
+      --border: #30363d;
+      --gold: #c8a45c;
+      --gold-dim: #a68a46;
+      --gold-glow: rgba(200, 164, 92, .18);
+      --text: #e6e1d3;
+      --text2: #8b949e;
+      --green: #3fb950;
+      --red: #f85149;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+      --radius: 8px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans SC', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* === Header === */
+    .header {
+      background: linear-gradient(135deg, #1a1208 0%, #0d1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .header span {
+      color: var(--text2);
+      font-size: 13px;
+    }
+
+    /* === Layout === */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    /* === Dropzone === */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 48px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s;
+      background: var(--surface);
+    }
+
+    .dropzone:hover,
+    .dropzone.drag-over {
+      border-color: var(--gold);
+      background: var(--gold-glow);
+    }
+
+    .dropzone h2 {
+      color: var(--gold);
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    .dropzone p {
+      color: var(--text2);
+      font-size: 14px;
+    }
+
+    .dropzone input {
+      display: none;
+    }
+
+    /* === Toolbar === */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar .info {
+      flex: 1;
+      color: var(--text2);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toolbar .info .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      display: inline-block;
+    }
+
+    /* === Buttons === */
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 9px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .2s;
+      font-family: inherit;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #1a1208;
+    }
+
+    .btn-gold:hover {
+      background: #d4b06a;
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .btn-red {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-red:hover {
+      opacity: .85;
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    /* === Tabs === */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text2);
+      border-bottom: 2px solid transparent;
+      font-family: inherit;
+      transition: all .2s;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    /* === Sections === */
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    /* === Cards === */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--gold);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* === Forms === */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: var(--text2);
+    }
+
+    .field input,
+    .field select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--gold);
+    }
+
+    .field input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    /* === Tool grid === */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .tool-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tool-card .tool-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .tool-card select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    /* === Weapon list === */
+    .weapon-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .weapon-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+
+    .weapon-row.equipped {
+      border-color: var(--gold);
+      box-shadow: 0 0 12px var(--gold-glow);
+    }
+
+    .weapon-row select,
+    .weapon-row button {
+      font-family: inherit;
+    }
+
+    .weapon-row select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 13px;
+    }
+
+    .weapon-row .weapon-info {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text2);
+    }
+
+    .weapon-row .weapon-stats {
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    .weapon-row .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .weapon-row .btn-sm:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .weapon-row .btn-equip {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .weapon-row .btn-equip:hover {
+      background: var(--gold-glow);
+    }
+
+    .add-weapon-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .add-weapon-row select {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    /* === Inventory table === */
+    .inv-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .inv-table th {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text2);
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    .inv-table td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .inv-table input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: var(--text);
+      font-size: 13px;
+      width: 80px;
+      font-family: inherit;
+    }
+
+    .inv-table input:focus {
+      border-color: var(--gold);
+      outline: none;
+    }
+
+    .inv-table .del-btn {
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+    }
+
+    .inv-table .del-btn:hover {
+      color: var(--red);
+    }
+
+    /* === Farm grid === */
+    .farm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    .plot-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .plot-card:hover {
+      border-color: var(--gold);
+    }
+
+    .plot-card .plot-id {
+      color: var(--text2);
+      margin-bottom: 4px;
+    }
+
+    .plot-card .plot-crop {
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    .plot-card .plot-status {
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    .plot-card.empty .plot-crop {
+      color: var(--text2);
+    }
+
+    .plot-card.infested {
+      border-color: var(--red);
+    }
+
+    .plot-card.weedy {
+      border-color: #d29922;
+    }
+
+    /* === Modal === */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, .6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      width: 420px;
+      max-width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal h3 {
+      color: var(--gold);
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+
+    .modal .field {
+      margin-bottom: 12px;
+    }
+
+    .modal .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* === Toast === */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 14px;
+      z-index: 200;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .3s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      border-color: var(--green);
+    }
+
+    .toast.error {
+      border-color: var(--red);
+    }
+
+    /* === JSON raw === */
+    .json-raw {
+      width: 100%;
+      min-height: 400px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      color: var(--text);
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      resize: vertical;
+      outline: none;
+    }
+
+    .json-raw:focus {
+      border-color: var(--gold);
+    }
+
+    /* batch actions */
+    .batch-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>🏡 桃源乡 存档编辑器</h1>
+    <span>支持 .tyx 加密存档的解密编辑与重新加密导出</span>
+  </div>
+
+  <div class="container">
+    <!-- Dropzone -->
+    <div id="dropzone" class="dropzone">
+      <h2>📂 拖拽 .tyx 存档文件到这里</h2>
+      <p>或点击选择文件 · 支持桃源乡游戏存档格式</p>
+      <input type="file" id="fileInput" accept=".tyx">
+    </div>
+    <div id="keyRow" style="margin-top:12px;display:flex;align-items:center;gap:8px;justify-content:center">
+      <label style="color:var(--text2);font-size:13px">🔑 密钥</label>
+      <input id="encKey" type="text" value="taoyuanxiang_2024_secret"
+        style="width:280px;background:var(--bg);border:1px solid var(--border);color:var(--gold);border-radius:6px;padding:6px 10px;font-size:13px;font-family:monospace;text-align:center">
+    </div>
+
+    <!-- Editor (hidden until file loaded) -->
+    <div id="editor" style="display:none">
+      <div class="toolbar">
+        <div class="info"><span class="dot"></span> <span id="fileInfo"></span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <label style="color:var(--text2);font-size:12px">🔑</label>
+          <input id="encKeyEditor" type="text" value="taoyuanxiang_2024_secret"
+            style="width:220px;background:var(--bg);border:1px solid var(--border);color:var(--gold);border-radius:4px;padding:4px 8px;font-size:12px;font-family:monospace">
+        </div>
+        <button class="btn btn-outline" onclick="loadFile()">📂 加载其他文件</button>
+        <button class="btn btn-gold" onclick="exportSave()">💾 导出 .tyx</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="player">👤 玩家</button>
+        <button class="tab" data-tab="tools">🔧 工具</button>
+        <button class="tab" data-tab="weapons">⚔️ 武器</button>
+        <button class="tab" data-tab="inventory">🎒 背包</button>
+        <button class="tab" data-tab="farm">🌾 农田</button>
+        <button class="tab" data-tab="raw">📝 原始JSON</button>
+      </div>
+
+      <!-- Player -->
+      <div id="sec-player" class="section active">
+        <div class="card">
+          <div class="card-title">📊 基本信息</div>
+          <div class="form-grid">
+            <div class="field"><label>玩家名</label><input id="p-name" type="text"></div>
+            <div class="field"><label>性别</label>
+              <select id="p-gender">
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </div>
+            <div class="field"><label>金钱</label><input id="p-money" type="number"></div>
+            <div class="field"><label>体力</label><input id="p-stamina" type="number"></div>
+            <div class="field"><label>最大体力</label><input id="p-maxStamina" type="number"></div>
+            <div class="field"><label>体力上限等级</label><input id="p-staminaCap" type="number"></div>
+            <div class="field"><label>HP</label><input id="p-hp" type="number"></div>
+            <div class="field"><label>基础最大HP</label><input id="p-baseMaxHp" type="number"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🌤️ 游戏状态</div>
+          <div class="form-grid">
+            <div class="field"><label>年份</label><input id="g-year" type="number"></div>
+            <div class="field"><label>季节</label>
+              <select id="g-season">
+                <option value="spring">春</option>
+                <option value="summer">夏</option>
+                <option value="autumn">秋</option>
+                <option value="winter">冬</option>
+              </select>
+            </div>
+            <div class="field"><label>天数</label><input id="g-day" type="number"></div>
+            <div class="field"><label>小时</label><input id="g-hour" type="number"></div>
+            <div class="field"><label>今日天气</label>
+              <select id="g-weather">
+                <option value="sunny">晴</option>
+                <option value="rainy">雨</option>
+                <option value="windy">风</option>
+                <option value="snowy">雪</option>
+              </select>
+            </div>
+            <div class="field"><label>明日天气</label>
+              <select id="g-tomorrow">
+                <option value="sunny">晴</option>
+                <option value="rainy">雨</option>
+                <option value="windy">风</option>
+                <option value="snowy">雪</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tools -->
+      <div id="sec-tools" class="section">
+        <div class="card">
+          <div class="card-title">🔧 工具升级</div>
+          <div class="batch-row">
+            <button class="btn btn-outline" onclick="setAllTools('iridium')">✨ 全部铱金</button>
+            <button class="btn btn-outline" onclick="setAllTools('basic')">↩ 全部重置</button>
+          </div>
+          <div class="tools-grid" id="toolsGrid"></div>
+        </div>
+      </div>
+
+      <!-- Weapons -->
+      <div id="sec-weapons" class="section">
+        <div class="card">
+          <div class="card-title">⚔️ 已拥有武器</div>
+          <div class="weapon-list" id="weaponList"></div>
+          <div class="add-weapon-row">
+            <select id="addWeaponSelect"></select>
+            <select id="addEnchantSelect"></select>
+            <button class="btn btn-gold" onclick="addWeapon()">+ 添加</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory -->
+      <div id="sec-inventory" class="section">
+        <div class="card">
+          <div class="card-title">🎒 背包物品 <span style="color:var(--text2);font-weight:400;font-size:13px"
+              id="invCount"></span></div>
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>物品ID</th>
+                <th>数量 <span style="color:var(--text2);font-weight:400;font-size:11px">(上限99)</span></th>
+                <th>品质</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="invBody"></tbody>
+          </table>
+          <div class="add-weapon-row" style="margin-top:12px; flex-wrap: wrap;">
+            <div style="flex:1; min-width: 200px; display: flex; flex-direction: column; gap: 4px;">
+              <input id="itemSearch" type="text" placeholder="🔍 搜索物品..." oninput="filterAddItems()"
+                style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit">
+              <select id="addItemSelect"></select>
+            </div>
+            <input id="addItemQty" type="number" value="1" min="1" max="99"
+              style="width:70px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:13px;font-family:inherit; align-self: flex-end;">
+            <select id="addItemQuality" style="width:100px; align-self: flex-end;">
+              <option value="normal">普通</option>
+              <option value="fine">优质</option>
+              <option value="premium">顶级</option>
+            </select>
+            <button class="btn btn-gold" onclick="addItem()" style="align-self: flex-end;">+ 新增</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Farm -->
+      <div id="sec-farm" class="section">
+        <div class="card">
+          <div class="card-title">🌾 农田地块</div>
+          <div class="batch-row">
+            <button class="btn btn-outline" onclick="setAllPlotsGrowth(1)">🌱 全部重置为第1天</button>
+            <button class="btn btn-outline" onclick="maxAllGrowth()">🌾 全部催熟</button>
+            <button class="btn btn-outline" onclick="clearAllWeeds()">🧹 清除杂草/虫害</button>
+            <button class="btn btn-outline" onclick="waterAll()">💧 全部浇水</button>
+          </div>
+          <div class="farm-grid" id="farmGrid"></div>
+        </div>
+      </div>
+
+      <!-- Raw JSON -->
+      <div id="sec-raw" class="section">
+        <div class="card">
+          <div class="card-title">📝 原始JSON数据 <span
+              style="font-weight:400;font-size:12px;color:var(--text2)">（修改后点击"应用"同步到编辑器）</span></div>
+          <textarea class="json-raw" id="rawJson"></textarea>
+          <div style="margin-top:10px;display:flex;gap:10px">
+            <button class="btn btn-gold" onclick="applyRawJson()">应用修改</button>
+            <button class="btn btn-outline" onclick="refreshRawJson()">刷新</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plot Edit Modal -->
+  <div class="modal-overlay" id="plotModal">
+    <div class="modal">
+      <h3>编辑地块 #<span id="plotModalId"></span></h3>
+      <div class="field"><label>状态</label>
+        <select id="pm-state">
+          <option value="empty">空地</option>
+          <option value="tilled">已翻耕</option>
+          <option value="growing">生长中</option>
+          <option value="ready">可收获</option>
+        </select>
+      </div>
+      <div class="field"><label>作物ID</label><input id="pm-crop" type="text" placeholder="如 potato"></div>
+      <div class="field"><label>已生长天数</label><input id="pm-growth" type="number"></div>
+      <div class="field"><label>已浇水</label><select id="pm-watered">
+          <option value="true">是</option>
+          <option value="false">否</option>
+        </select></div>
+      <div class="field"><label>虫害</label><select id="pm-infested">
+          <option value="false">无</option>
+          <option value="true">有</option>
+        </select></div>
+      <div class="field"><label>杂草</label><select id="pm-weedy">
+          <option value="false">无</option>
+          <option value="true">有</option>
+        </select></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closePlotModal()">取消</button>
+        <button class="btn btn-gold" onclick="savePlotModal()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const DEFAULT_KEY = 'taoyuanxiang_2024_secret';
+    function getKey() {
+      return (document.getElementById('encKeyEditor')?.value || document.getElementById('encKey')?.value || DEFAULT_KEY).trim();
+    }
+    const MAX_STACK = 99;
+
+    // === Data Definitions ===
+    const TOOL_NAMES = {
+      wateringCan: '水壶', hoe: '锄头', pickaxe: '镐',
+      fishingRod: '鱼竿', scythe: '镰刀', axe: '斧头', pan: '淘金盘'
+    };
+    const TIER_NAMES = { basic: '初始', iron: '铁制', steel: '精钢', iridium: '铱金' };
+    const TIERS = ['basic', 'iron', 'steel', 'iridium'];
+
+    const WEAPONS = {
+      wooden_stick: { name: '木棒', type: 'club', atk: 5, crit: .02 },
+      copper_sword: { name: '铜剑', type: 'sword', atk: 12, crit: .05 },
+      iron_blade: { name: '铁刀', type: 'sword', atk: 18, crit: .05 },
+      war_hammer: { name: '战锤', type: 'club', atk: 22, crit: .03 },
+      gold_halberd: { name: '金戟', type: 'sword', atk: 28, crit: .08 },
+      bone_dagger: { name: '骨匕', type: 'dagger', atk: 9, crit: .15 },
+      frost_dagger: { name: '冰锋匕', type: 'dagger', atk: 16, crit: .18 },
+      shadow_blade: { name: '暗影之刃', type: 'dagger', atk: 24, crit: .22 },
+      mud_king_fang: { name: '泥王之牙', type: 'sword', atk: 20, crit: .12 },
+      frost_queen_sting: { name: '冰霜之刺', type: 'dagger', atk: 19, crit: .25 },
+      lava_lord_maul: { name: '熔岩之锤', type: 'club', atk: 38, crit: .08 },
+      crystal_shard_dagger: { name: '晶棘匕', type: 'dagger', atk: 30, crit: .2 },
+      shadow_katana: { name: '暗影太刀', type: 'sword', atk: 35, crit: .1 },
+      void_hammer: { name: '虚空战锤', type: 'club', atk: 48, crit: .05 },
+      crystal_blade: { name: '水晶长剑', type: 'sword', atk: 35, crit: .08 },
+      shadow_mace: { name: '暗影锤', type: 'club', atk: 42, crit: .05 },
+      void_katana: { name: '虚空太刀', type: 'sword', atk: 52, crit: .1 },
+      crystal_king_blade: { name: '晶王圣剑', type: 'sword', atk: 45, crit: .15 },
+      shadow_sovereign_fang: { name: '暗影之牙', type: 'dagger', atk: 38, crit: .3 },
+      abyss_dragon_mace: { name: '龙王权杖', type: 'club', atk: 60, crit: .12 }
+    };
+    const ENCHANTMENTS = {
+      sharp: { name: '锋利', desc: '攻击+3' },
+      fierce: { name: '炽热', desc: '攻击+5' },
+      precise: { name: '精准', desc: '暴击+10%' },
+      vampiric: { name: '吸血', desc: '伤害15%回血' },
+      sturdy: { name: '坚韧', desc: '受伤-15%' },
+      lucky: { name: '幸运', desc: '掉率+20%' }
+    };
+    const TYPE_NAMES = { sword: '剑', dagger: '匕首', club: '锤' };
+
+    // === Complete Item Name Map ===
+    const ITEM_NAMES = {
+      // 作物
+      cabbage: '青菜', radish: '萝卜', potato: '土豆', tea: '茶苗', watermelon: '西瓜',
+      rice: '稻谷', lotus_root: '莲藕', sesame: '芝麻', pumpkin: '南瓜', sweet_potato: '红薯',
+      chrysanthemum: '菊花', osmanthus: '桂花', rapeseed: '油菜', broad_bean: '蚕豆',
+      spring_shoot: '春笋', peach: '桃', green_bean: '豆角', loofah: '丝瓜', eggplant: '茄子',
+      chili: '辣椒', lotus_seed: '莲子', corn: '玉米', yam: '山药', peanut: '花生',
+      jujube: '红枣', persimmon: '柿子', ginger: '生姜', napa_cabbage: '白菜', spinach: '菠菜',
+      mustard_green: '芥菜', winter_wheat: '冬小麦', garlic: '大蒜', snow_lotus: '雪莲花',
+      soybean: '大豆',
+      // 种子
+      seed_cabbage: '青菜种子', seed_radish: '萝卜种子', seed_potato: '土豆种子',
+      seed_tea: '茶苗种子', seed_watermelon: '西瓜种子', seed_rice: '稻谷种子',
+      seed_lotus_root: '莲藕种子', seed_sesame: '芝麻种子', seed_pumpkin: '南瓜种子',
+      seed_sweet_potato: '红薯种子', seed_chrysanthemum: '菊花种子', seed_osmanthus: '桂花种子',
+      seed_rapeseed: '油菜种子', seed_broad_bean: '蚕豆种子', seed_spring_shoot: '春笋种子',
+      seed_peach: '桃种子', seed_green_bean: '豆角种子', seed_loofah: '丝瓜种子',
+      seed_eggplant: '茄子种子', seed_chili: '辣椒种子', seed_lotus_seed: '莲子种子',
+      seed_corn: '玉米种子', seed_yam: '山药种子', seed_peanut: '花生种子',
+      seed_jujube: '红枣种子', seed_persimmon: '柿子种子', seed_ginger: '生姜种子',
+      seed_napa_cabbage: '白菜种子', seed_spinach: '菠菜种子', seed_mustard_green: '芥菜种子',
+      seed_winter_wheat: '冬小麦种子', seed_garlic: '大蒜种子', seed_snow_lotus: '雪莲花种子',
+      seed_soybean: '大豆种子',
+      // 矿石 & 宝石
+      copper_ore: '铜矿', iron_ore: '铁矿', gold_ore: '金矿', crystal_ore: '水晶矿',
+      shadow_ore: '暗影矿', void_ore: '虚空矿', iridium_ore: '铱矿',
+      quartz: '石英', jade: '翡翠', ruby: '红宝石', moonstone: '月光石',
+      obsidian: '黑曜石', dragon_jade: '龙玉', prismatic_shard: '五彩碎片', battery: '电池组',
+      // 金属锭
+      copper_bar: '铜锭', iron_bar: '铁锭', gold_bar: '金锭', iridium_bar: '铱锭',
+      // 材料
+      wood: '木材', bamboo: '竹子', herb: '草药', firewood: '柴火',
+      pine_cone: '松果', charcoal: '木炭', hay: '干草',
+      cloth: '布匹', silk_cloth: '丝绸', alpaca_cloth: '羊驼绒', felt: '毛毡',
+      rice_flour: '米粉', wheat_flour: '面粉', cornmeal: '玉米粉',
+      pine_resin: '松脂', camphor_oil: '樟脑油', silk: '蚕丝',
+      // 杂项
+      winter_bamboo_shoot: '冬笋', wintersweet: '腊梅', wild_mushroom: '野蘑菇',
+      ginseng: '人参', wild_berry: '野果', jade_ring: '翡翠戒指', silk_ribbon: '丝帕',
+      rain_totem: '雨图腾', mulberry: '桑葚', gold_nugget: '金砂',
+      trash: '垃圾', driftwood: '浮木', broken_cd: '碎碟片', soggy_newspaper: '湿报纸',
+      scarecrow: '稻草人', tapper: '采脂器', lightning_rod: '避雷针',
+      // 鱼类
+      crucian: '鲫鱼', carp: '鲤鱼', grass_carp: '草鱼', bass: '鲈鱼', catfish: '鲶鱼',
+      mandarin_fish: '桂花鱼', eel: '鳗鱼', sturgeon: '鲟鱼', loach: '泥鳅', yellow_eel: '黄鳝',
+      snail: '蜗牛', freshwater_shrimp: '淡水虾', crab: '螃蟹', lobster: '龙虾',
+      cave_shrimp: '洞穴虾', swamp_crab: '沼泽蟹', crab_pot: '蟹笼',
+      // 食物 (烹饪)
+      food_stir_fry_cabbage: '清炒青菜', food_radish_soup: '萝卜汤',
+      food_baked_potato: '烤土豆', food_watermelon_juice: '西瓜汁',
+      food_rice_ball: '饭团', food_lotus_root_soup: '莲藕排骨汤',
+      food_sesame_ball: '芝麻球', food_pumpkin_pie: '南瓜饼',
+      food_sweet_potato_congee: '红薯粥', food_chrysanthemum_wine: '菊花酒',
+      food_osmanthus_cake: '桂花糕', food_spring_roll: '春卷',
+      food_broad_bean_stir_fry: '炒蚕豆', food_bamboo_shoot_soup: '笋汤',
+      food_peach_dessert: '桃花酥', food_green_bean_stir_fry: '干煸豆角',
+      food_loofah_egg_soup: '丝瓜蛋汤', food_braised_eggplant: '红烧茄子',
+      food_chili_stir_fry: '虎皮辣椒', food_lotus_seed_soup: '莲子羹',
+      food_corn_bread: '玉米饼', food_yam_congee: '山药粥',
+      food_peanut_crisp: '花生酥', food_jujube_cake: '枣糕',
+      food_persimmon_cake: '柿饼', food_ginger_tea: '姜茶',
+      food_napa_cabbage_stew: '白菜炖粉条', food_spinach_soup: '菠菜汤',
+      food_pickled_mustard: '腌芥菜', food_steamed_bread: '馒头',
+      food_garlic_shrimp: '蒜蓉虾', food_snow_lotus_tea: '雪莲茶',
+      food_tofu_soup: '豆腐汤', food_soybean_milk: '豆浆',
+      food_mushroom_stew: '蘑菇炖菜', food_ginseng_soup: '人参汤',
+      food_fried_fish: '煎鱼', food_fish_soup: '鱼汤',
+      food_crab_soup: '蟹黄汤', food_lobster_feast: '龙虾大餐',
+      food_miners_lunch: '矿工便当', food_farmers_feast: '丰收宴',
+      food_fishers_platter: '渔夫拼盘', food_tea_set: '茶点套装',
+      food_jiaozi: '冬至饺', food_laba_congee: '腊八粥',
+      food_tangyuan: '元宵汤圆', food_niangao: '年糕',
+      food_bountiful_porridge: '丰饶粥', food_miners_glory: '矿工荣耀',
+      food_chefs_special: '大厨特制', food_anglers_pride: '钓者之傲',
+      food_silkie_egg_soup: '乌鸡蛋汤', food_goat_milk_soup: '羊奶汤',
+      food_truffle_fried_rice: '松露炒饭', food_peacock_feast: '孔雀宴',
+      food_camel_milk_tea: '驼奶茶', food_abyss_stew: '深渊炖菜',
+      food_collectors_banquet: '珍藏盛宴',
+      // 加工品
+      watermelon_wine: '西瓜酒', osmanthus_wine: '桂花酿', rice_vinegar: '米醋',
+      pickled_cabbage: '腌白菜', dried_radish: '萝卜干', pumpkin_preserve: '南瓜酱',
+      honey: '蜂蜜', sesame_oil: '芝麻油', tea_oil: '茶油',
+      peach_wine: '桃花酒', jujube_wine: '红枣酒', corn_wine: '玉米酒',
+      pickled_chili: '泡椒', pickled_ginger: '腌姜',
+      mayonnaise: '蛋黄酱', duck_mayonnaise: '鸭蛋黄酱', goose_mayonnaise: '鹅蛋黄酱',
+      silkie_mayonnaise: '乌鸡蛋黄酱', ostrich_mayonnaise: '鸵鸟蛋黄酱',
+      quail_mayonnaise: '鹌鹑蛋黄酱', truffle_oil: '松露油',
+      // 烟熏
+      smoked_crucian: '烟熏鲫鱼', smoked_carp: '烟熏鲤鱼', smoked_grass_carp: '烟熏草鱼',
+      smoked_bass: '烟熏鲈鱼', smoked_catfish: '烟熏鲶鱼', smoked_mandarin_fish: '烟熏桂花鱼',
+      smoked_eel: '烟熏鳗鱼', smoked_sturgeon: '烟熏鲟鱼', smoked_loach: '烟熏泥鳅',
+      smoked_yellow_eel: '烟熏黄鳝',
+      // 脱水
+      dried_mushroom: '干蘑菇', dried_peach: '桃干', dried_lychee: '荔枝干',
+      dried_persimmon_slice: '柿饼', dried_hawthorn: '山楂片', dried_apricot: '杏脯',
+      dried_berry: '果脯',
+      // 花蜜
+      chrysanthemum_honey: '菊花蜜', osmanthus_honey: '桂花蜜',
+      rapeseed_honey: '菜花蜜', snow_lotus_honey: '雪莲蜜',
+      // 茶饮
+      green_tea_drink: '绿茶', chrysanthemum_tea: '菊花茶', osmanthus_tea: '桂花茶',
+      ginseng_tea: '人参茶',
+      // 奶酪
+      cheese: '奶酪', goat_cheese: '山羊奶酪', buffalo_cheese: '水牛奶酪', yak_cheese: '牦牛奶酪',
+      // 豆腐
+      tofu: '豆腐', peanut_tofu: '花生豆腐', sesame_paste: '芝麻酱',
+      // 药品
+      herbal_paste: '草药膏', ginseng_extract: '人参精', antler_powder: '鹿茸粉',
+      animal_medicine: '兽药',
+      // 饲料
+      premium_feed: '精饲料', nourishing_feed: '滋补饲料', vitality_feed: '活力饲料',
+      // 香料
+      pine_incense: '松香', camphor_incense: '樟脑香', osmanthus_incense: '桂花香',
+      // 动物产品
+      egg: '鸡蛋', duck_egg: '鸭蛋', milk: '牛奶', wool: '羊毛',
+      rabbit_fur: '兔毛', rabbit_foot: '幸运兔脚', goose_egg: '鹅蛋', quail_egg: '鹌鹑蛋',
+      pigeon_egg: '鸽子蛋', silkie_egg: '乌鸡蛋', peacock_feather: '孔雀羽',
+      goat_milk: '羊奶', truffle: '松露', buffalo_milk: '水牛奶', yak_milk: '牦牛奶',
+      alpaca_wool: '羊驼毛', antler_velvet: '鹿茸', donkey_milk: '驴奶',
+      camel_milk: '驼奶', ostrich_egg: '鸵鸟蛋',
+      // 果树
+      tree_peach: '鲜桃', lychee: '荔枝', mandarin: '橘子', plum_blossom: '梅花',
+      apricot: '杏子', pomegranate: '石榴', hawthorn: '山楂',
+      sapling_peach: '桃树苗', sapling_lychee: '荔枝树苗', sapling_mandarin: '橘树苗',
+      sapling_plum: '梅树苗', sapling_apricot: '杏树苗', sapling_pomegranate: '石榴树苗',
+      sapling_persimmon: '柿树苗', sapling_hawthorn: '山楂树苗',
+      // 洒水器
+      bamboo_sprinkler: '竹筒洒水器', copper_sprinkler: '铜管洒水器', gold_sprinkler: '金管洒水器',
+      // 肥料
+      basic_fertilizer: '基础肥料', quality_fertilizer: '优质肥料',
+      speed_gro: '生长激素', deluxe_speed_gro: '高级激素',
+      retaining_soil: '保湿土', quality_retaining_soil: '优质保湿土',
+      // 鱼饵 & 浮漂
+      standard_bait: '普通鱼饵', wild_bait: '野生鱼饵', magic_bait: '魔法鱼饵',
+      deluxe_bait: '精致鱼饵', targeted_bait: '定向鱼饵',
+      spinner: '旋转浮漂', trap_bobber: '陷阱浮漂', cork_bobber: '软木浮漂',
+      quality_bobber: '品质浮漂', lead_bobber: '铅坠浮漂',
+      // 炸弹
+      cherry_bomb: '爆竹', bomb: '火药包', mega_bomb: '雷火弹',
+      // 化石
+      trilobite_fossil: '三叶虫化石', amber: '琥珀', ammonite_fossil: '菊石化石',
+      fern_fossil: '蕨叶化石', shell_fossil: '螺壳化石', bone_fragment: '骨骸碎片',
+      petrified_wood: '石化木', dragon_tooth: '龙牙化石',
+      // 古物
+      ancient_pottery: '古陶片', jade_disc: '玉璧残片', bronze_mirror: '铜镜',
+      ancient_coin: '远古铜钱', oracle_bone: '甲骨片', jade_pendant: '玉佩',
+      ancient_seed: '远古种子', bamboo_scroll: '竹简', stone_axe_head: '石斧头',
+      painted_pottery: '彩陶碎片',
+      // 公会 & 特殊
+      combat_tonic: '战斗补剂', fortify_brew: '强化药水', ironhide_potion: '铁壁药剂',
+      slayer_charm: '猎魔符', warriors_feast: '勇者盛宴', monster_lure: '怪物诱饵',
+      guild_badge: '公会徽章',
+      // 瀚海
+      hanhai_cactus_seed: '仙人掌种子', hanhai_date_seed: '红枣种子',
+      hanhai_spice: '西域香料', hanhai_silk: '丝绸', hanhai_turquoise: '绿松石',
+      hanhai_map: '藏宝图', mega_bomb_recipe: '巨型炸弹配方',
+      // 机器 (machine_xxx IDs)
+      machine_wine_barrel: '酒坛', machine_preserves_jar: '腌缸',
+      machine_oil_press: '油坊', machine_sauce_jar: '酱缸',
+      machine_furnace: '熔炉', machine_seed_maker: '种子机',
+      machine_recycler: '回收机', machine_charcoal_kiln: '炭窑',
+      machine_flour_mill: '石磨', machine_worm_bin: '蚯蚓箱',
+      machine_bee_house: '蜂箱', machine_dehydrator: '脱水机',
+      machine_smoker: '烟熏炉', machine_cheese_press: '奶酪机',
+      machine_loom: '织布机', machine_mayonnaise_machine: '蛋黄酱机',
+      machine_tea_set: '茶具', machine_tofu_press: '豆腐坊',
+      machine_herb_grinder: '药研', machine_incense_burner: '制香炉',
+      machine_feed_mixer: '饲料机', machine_crystal_duplicator: '结晶复制机',
+      machine_wine_workshop: '酒坊',
+    };
+    const itemName = id => ITEM_NAMES[id] || id;
+
+    // === State ===
+    let saveData = null;
+    let fileName = '';
+
+    // === Crypto ===
+    function decrypt(cipher) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(cipher, getKey());
+        const r = bytes.toString(CryptoJS.enc.Utf8);
+        return r || null;
+      } catch { return null; }
+    }
+    function encrypt(text) {
+      return CryptoJS.AES.encrypt(text, getKey()).toString();
+    }
+
+    // === File handling ===
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault(); dropzone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+    function loadFile() { fileInput.click(); }
+
+    function handleFile(file) {
+      fileName = file.name;
+      // Sync key from dropzone to editor
+      const dk = document.getElementById('encKey').value.trim();
+      document.getElementById('encKeyEditor').value = dk;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const raw = e.target.result.trim();
+        const json = decrypt(raw);
+        if (!json) { toast('解密失败：文件无效或密钥不匹配', 'error'); return; }
+        try {
+          saveData = JSON.parse(json);
+          document.getElementById('editor').style.display = 'block';
+          dropzone.style.display = 'none';
+          document.getElementById('keyRow').style.display = 'none';
+          populateAll();
+          toast('存档加载成功', 'success');
+        } catch { toast('JSON 解析失败', 'error'); }
+      };
+      reader.readAsText(file);
+    }
+
+    function populateAll() {
+      const g = saveData.game || {};
+      const p = saveData.player || {};
+      document.getElementById('fileInfo').textContent =
+        `${fileName} · ${p.playerName || '?'} · 第${g.year}年 ${({ spring: '春', summer: '夏', autumn: '秋', winter: '冬' })[g.season] || g.season} 第${g.day}天`;
+
+      // Player
+      document.getElementById('p-name').value = p.playerName || '';
+      document.getElementById('p-gender').value = p.gender || 'male';
+      document.getElementById('p-money').value = p.money || 0;
+      document.getElementById('p-stamina').value = p.stamina || 0;
+      document.getElementById('p-maxStamina').value = p.maxStamina || 0;
+      document.getElementById('p-staminaCap').value = p.staminaCapLevel || 0;
+      document.getElementById('p-hp').value = p.hp || 0;
+      document.getElementById('p-baseMaxHp').value = p.baseMaxHp || 0;
+
+      // Game
+      document.getElementById('g-year').value = g.year || 1;
+      document.getElementById('g-season').value = g.season || 'spring';
+      document.getElementById('g-day').value = g.day || 1;
+      document.getElementById('g-hour').value = g.hour || 6;
+      document.getElementById('g-weather').value = g.weather || 'sunny';
+      document.getElementById('g-tomorrow').value = g.tomorrowWeather || 'sunny';
+
+      renderTools();
+      renderWeapons();
+      renderInventory();
+      renderFarm();
+      refreshRawJson();
+    }
+
+    // === Sync UI -> Data ===
+    function syncToData() {
+      if (!saveData) return;
+      const p = saveData.player;
+      const g = saveData.game;
+      p.playerName = document.getElementById('p-name').value;
+      p.gender = document.getElementById('p-gender').value;
+      p.money = +document.getElementById('p-money').value;
+      p.stamina = +document.getElementById('p-stamina').value;
+      p.maxStamina = +document.getElementById('p-maxStamina').value;
+      p.staminaCapLevel = +document.getElementById('p-staminaCap').value;
+      p.hp = +document.getElementById('p-hp').value;
+      p.baseMaxHp = +document.getElementById('p-baseMaxHp').value;
+      g.year = +document.getElementById('g-year').value;
+      g.season = document.getElementById('g-season').value;
+      g.day = +document.getElementById('g-day').value;
+      g.hour = +document.getElementById('g-hour').value;
+      g.weather = document.getElementById('g-weather').value;
+      g.tomorrowWeather = document.getElementById('g-tomorrow').value;
+
+      // Tools
+      const inv = saveData.inventory;
+      if (inv && inv.tools) {
+        document.querySelectorAll('.tool-select').forEach(sel => {
+          const t = inv.tools.find(x => x.type === sel.dataset.type);
+          if (t) t.tier = sel.value;
+        });
+      }
+
+      // Inventory items
+      syncInventory();
+    }
+
+    // === Tools ===
+    function renderTools() {
+      const grid = document.getElementById('toolsGrid');
+      const tools = saveData.inventory?.tools || [];
+      grid.innerHTML = tools.map(t => `
+    <div class="tool-card">
+      <div class="tool-name">${TOOL_NAMES[t.type] || t.type}</div>
+      <select class="tool-select" data-type="${t.type}">
+        ${TIERS.map(tier => `<option value="${tier}" ${t.tier === tier ? 'selected' : ''}>${TIER_NAMES[tier]}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+    }
+    function setAllTools(tier) {
+      document.querySelectorAll('.tool-select').forEach(s => s.value = tier);
+      if (saveData.inventory?.tools) saveData.inventory.tools.forEach(t => t.tier = tier);
+      toast(`已将所有工具设为${TIER_NAMES[tier]}`, 'success');
+    }
+
+    // === Weapons ===
+    function renderWeapons() {
+      const list = document.getElementById('weaponList');
+      const owned = saveData.inventory?.ownedWeapons || [];
+      const eq = saveData.inventory?.equippedWeaponIndex ?? -1;
+      list.innerHTML = owned.map((w, i) => {
+        const def = WEAPONS[w.defId] || { name: w.defId, type: '?', atk: 0, crit: 0 };
+        const ench = w.enchantmentId ? ENCHANTMENTS[w.enchantmentId] : null;
+        const isEq = i === eq;
+        return `<div class="weapon-row ${isEq ? 'equipped' : ''}">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500">${ench ? ench.name + '的' : ''}${def.name}
+          <span style="color:var(--text2);font-size:12px">[${TYPE_NAMES[def.type] || def.type}]</span>
+          ${isEq ? '<span style="color:var(--gold);font-size:11px;margin-left:4px">已装备</span>' : ''}
+        </div>
+        <div class="weapon-stats">攻击:${def.atk} · 暴击:${(def.crit * 100).toFixed(0)}%${ench ? ' · ' + ench.desc : ''}</div>
+      </div>
+      ${isEq ? '' : `<button class="btn-sm btn-equip" onclick="equipWeapon(${i})">装备</button>`}
+      <button class="btn-sm" onclick="removeWeapon(${i})">删除</button>
+    </div>`;
+      }).join('');
+
+      // Add weapon selects
+      const wsel = document.getElementById('addWeaponSelect');
+      wsel.innerHTML = Object.entries(WEAPONS)
+        .sort((a, b) => b[1].atk - a[1].atk)
+        .map(([id, w]) => `<option value="${id}">${w.name} (${TYPE_NAMES[w.type]} ATK:${w.atk})</option>`).join('');
+      const esel = document.getElementById('addEnchantSelect');
+      esel.innerHTML = '<option value="">无附魔</option>' +
+        Object.entries(ENCHANTMENTS).map(([id, e]) => `<option value="${id}">${e.name} - ${e.desc}</option>`).join('');
+    }
+    function equipWeapon(i) {
+      saveData.inventory.equippedWeaponIndex = i;
+      renderWeapons();
+    }
+    function removeWeapon(i) {
+      const owned = saveData.inventory.ownedWeapons;
+      owned.splice(i, 1);
+      if (saveData.inventory.equippedWeaponIndex >= owned.length) saveData.inventory.equippedWeaponIndex = owned.length - 1;
+      if (saveData.inventory.equippedWeaponIndex === i) saveData.inventory.equippedWeaponIndex = -1;
+      else if (saveData.inventory.equippedWeaponIndex > i) saveData.inventory.equippedWeaponIndex--;
+      renderWeapons();
+    }
+    function addWeapon() {
+      const wid = document.getElementById('addWeaponSelect').value;
+      const eid = document.getElementById('addEnchantSelect').value || null;
+      if (!saveData.inventory.ownedWeapons) saveData.inventory.ownedWeapons = [];
+      saveData.inventory.ownedWeapons.push({ defId: wid, enchantmentId: eid });
+      renderWeapons();
+      toast(`已添加 ${WEAPONS[wid]?.name || wid}`, 'success');
+    }
+
+    // === Inventory ===
+    function renderInventory() {
+      const body = document.getElementById('invBody');
+      const items = saveData.inventory?.items || [];
+      document.getElementById('invCount').textContent = `(${items.length} 件)`;
+      body.innerHTML = items.map((it, i) => `<tr>
+    <td style="color:var(--gold);font-weight:500">${itemName(it.itemId)}</td>
+    <td><input type="text" value="${it.itemId}" data-inv="${i}" data-field="itemId" style="width:140px" oninput="updateItemName(this)"></td>
+    <td><input type="number" value="${it.quantity}" data-inv="${i}" data-field="quantity" min="1" max="${MAX_STACK}" title="上限 ${MAX_STACK}" style="width:70px" oninput="this.style.borderColor=this.value>MAX_STACK?'var(--red)':'var(--border)'"></td>
+    <td><select data-inv="${i}" data-field="quality" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 8px;font-size:13px;font-family:inherit">
+      <option value="normal" ${it.quality === 'normal' ? 'selected' : ''}>普通</option>
+      <option value="fine" ${it.quality === 'fine' ? 'selected' : ''}>优质</option>
+      <option value="premium" ${it.quality === 'premium' ? 'selected' : ''}>顶级</option>
+    </select></td>
+    <td><button class="del-btn" onclick="removeItem(${i})">✕</button></td>
+  </tr>`).join('');
+
+      // Initial populate if empty
+      const sel = document.getElementById('addItemSelect');
+      if (!sel.children.length) filterAddItems();
+    }
+    function filterAddItems() {
+      const q = document.getElementById('itemSearch').value.toLowerCase();
+      const sel = document.getElementById('addItemSelect');
+      const filtered = Object.entries(ITEM_NAMES)
+        .filter(([id, n]) => n.toLowerCase().includes(q) || id.toLowerCase().includes(q))
+        .sort((a, b) => a[1].localeCompare(b[1], 'zh'));
+
+      sel.innerHTML = filtered.map(([id, n]) => `<option value="${id}">${n} (${id})</option>`).join('');
+      if (!filtered.length) sel.innerHTML = '<option value="">无匹配物品</option>';
+    }
+    function updateItemName(el) {
+      const row = el.closest('tr');
+      if (row) row.cells[0].textContent = itemName(el.value);
+    }
+    function addItem() {
+      const id = document.getElementById('addItemSelect').value;
+      const qty = Math.min(+document.getElementById('addItemQty').value || 1, MAX_STACK);
+      const quality = document.getElementById('addItemQuality').value;
+      if (!saveData.inventory.items) saveData.inventory.items = [];
+      saveData.inventory.items.push({ itemId: id, quantity: qty, quality: quality });
+      renderInventory();
+      toast(`已添加 ${itemName(id)} ×${qty}`, 'success');
+    }
+    function removeItem(i) {
+      saveData.inventory.items.splice(i, 1);
+      renderInventory();
+    }
+    function syncInventory() {
+      const items = saveData.inventory?.items || [];
+      let clamped = false;
+      document.querySelectorAll('#invBody input, #invBody select').forEach(el => {
+        const idx = +el.dataset.inv;
+        const field = el.dataset.field;
+        if (items[idx]) {
+          if (field === 'quantity') {
+            let v = +el.value;
+            if (v > MAX_STACK) { v = MAX_STACK; el.value = v; clamped = true; }
+            if (v < 1) { v = 1; el.value = v; }
+            items[idx][field] = v;
+          } else {
+            items[idx][field] = el.value;
+          }
+        }
+      });
+      if (clamped) toast(`物品数量已限制为上限 ${MAX_STACK}`, 'error');
+    }
+
+    // === Farm ===
+    function renderFarm() {
+      const grid = document.getElementById('farmGrid');
+      const plots = saveData.farm?.plots || [];
+      grid.innerHTML = plots.map((p, i) => {
+        const cls = [
+          'plot-card',
+          p.state === 'empty' || !p.cropId ? 'empty' : '',
+          p.infested ? 'infested' : '',
+          p.weedy ? 'weedy' : ''
+        ].filter(Boolean).join(' ');
+        return `<div class="${cls}" onclick="openPlotModal(${i})">
+      <div class="plot-id">#${p.id ?? i}</div>
+      <div class="plot-crop">${p.cropId || '空地'}</div>
+      <div class="plot-status">${p.state !== 'empty' && p.cropId ? `生长 ${p.growthDays}天` : ''} ${p.watered ? '💧' : ''} ${p.infested ? '🐛' : ''} ${p.weedy ? '🌿' : ''}</div>
+    </div>`;
+      }).join('');
+    }
+    let editingPlotIdx = -1;
+    function openPlotModal(i) {
+      editingPlotIdx = i;
+      const p = saveData.farm.plots[i];
+      document.getElementById('plotModalId').textContent = p.id ?? i;
+      document.getElementById('pm-state').value = p.state || 'empty';
+      document.getElementById('pm-crop').value = p.cropId || '';
+      document.getElementById('pm-growth').value = p.growthDays || 0;
+      document.getElementById('pm-watered').value = String(!!p.watered);
+      document.getElementById('pm-infested').value = String(!!p.infested);
+      document.getElementById('pm-weedy').value = String(!!p.weedy);
+      document.getElementById('plotModal').classList.add('show');
+    }
+    function closePlotModal() { document.getElementById('plotModal').classList.remove('show'); }
+    function savePlotModal() {
+      const p = saveData.farm.plots[editingPlotIdx];
+      p.state = document.getElementById('pm-state').value;
+      p.cropId = document.getElementById('pm-crop').value || null;
+      p.growthDays = +document.getElementById('pm-growth').value;
+      p.watered = document.getElementById('pm-watered').value === 'true';
+      p.infested = document.getElementById('pm-infested').value === 'true';
+      p.weedy = document.getElementById('pm-weedy').value === 'true';
+      closePlotModal();
+      renderFarm();
+    }
+    function setAllPlotsGrowth(d) {
+      (saveData.farm?.plots || []).forEach(p => { if (p.cropId) p.growthDays = d; });
+      renderFarm(); toast('已设置', 'success');
+    }
+    function maxAllGrowth() {
+      (saveData.farm?.plots || []).forEach(p => { if (p.cropId) { p.growthDays = 99; p.state = 'ready'; } });
+      renderFarm(); toast('已催熟所有作物', 'success');
+    }
+    function clearAllWeeds() {
+      (saveData.farm?.plots || []).forEach(p => { p.infested = false; p.weedy = false; p.infestedDays = 0; p.weedyDays = 0; });
+      renderFarm(); toast('已清除杂草与虫害', 'success');
+    }
+    function waterAll() {
+      (saveData.farm?.plots || []).forEach(p => { p.watered = true; p.unwateredDays = 0; });
+      renderFarm(); toast('已全部浇水', 'success');
+    }
+
+    // === Raw JSON ===
+    function refreshRawJson() {
+      syncToData();
+      document.getElementById('rawJson').value = JSON.stringify(saveData, null, 2);
+    }
+    function applyRawJson() {
+      try {
+        saveData = JSON.parse(document.getElementById('rawJson').value);
+        populateAll();
+        toast('已应用修改', 'success');
+      } catch { toast('JSON 格式错误', 'error'); }
+    }
+
+    // === Export ===
+    function exportSave() {
+      syncToData();
+      saveData.savedAt = new Date().toISOString();
+      const json = JSON.stringify(saveData);
+      const cipher = encrypt(json);
+      const blob = new Blob([cipher], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName || '存档.tyx';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('存档已导出', 'success');
+    }
+
+    // === Tabs ===
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('sec-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'raw') refreshRawJson();
+      });
+    });
+
+    // === Toast ===
+    function toast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + type + ' show';
+      clearTimeout(t._tid);
+      t._tid = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+  </script>
+</body>
+
+</html>
